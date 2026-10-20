@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inteligentny Budżet Domowy v1.6</title>
+    <!-- Czcionka Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js do wykresów -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --input-bg: #0f172a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.5;
+            padding: 2rem 1rem 1rem 1rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            flex: 1;
+            width: 100%;
+        }
+
+        .header {
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-top: 0.25rem;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Tooltip / Kółeczko ze znakiem zapytania */
+        .tooltip-container {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .help-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background-color: var(--card-border);
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 700;
+            transition: all 0.2s ease;
+        }
+
+        .tooltip-container:hover .help-icon {
+            background-color: var(--accent-blue);
+            color: #ffffff;
+        }
+
+        .tooltip-box {
+            visibility: hidden;
+            opacity: 0;
+            width: 320px;
+            background-color: #020617;
+            color: #f1f5f9;
+            text-align: left;
+            border-radius: 8px;
+            padding: 0.85rem 1rem;
+            position: absolute;
+            z-index: 10;
+            top: 135%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 1px solid var(--card-border);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            font-size: 0.8rem;
+            font-weight: 400;
+            text-transform: none;
+            line-height: 1.4;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            pointer-events: none;
+        }
+
+        .tooltip-box::after {
+            content: "";
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: transparent transparent #020617 transparent;
+        }
+
+        .tooltip-container:hover .tooltip-box {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .kpi-value.green { color: var(--accent-green); }
+        .kpi-value.red { color: var(--accent-red); }
+        .kpi-value.purple { color: var(--accent-purple); }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 0.4rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.65rem 0.9rem;
+            background-color: var(--input-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        button.btn-primary {
+            width: 100%;
+            background-color: var(--accent-blue);
+            color: #ffffff;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.25rem;
+            font-size: 0.95rem;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+
+        button.btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        button.btn-delete {
+            background: transparent;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: var(--accent-red);
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        button.btn-delete:hover {
+            background-color: var(--accent-red);
+            color: #ffffff;
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            color: var(--text-secondary);
+            font-weight: 600;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--card-border);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 0.9rem 1rem;
+            border-bottom: 1px solid var(--card-border);
+            color: var(--text-primary);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.55rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-income {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+        }
+
+        .badge-expense {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 260px;
+            width: 100%;
+        }
+
+        .info-box {
+            background-color: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 0.9rem 1.1rem;
+            margin-bottom: 1.5rem;
+            color: #93c5fd;
+            font-size: 0.88rem;
+        }
+
+        /* Stopka */
+        footer {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--card-border);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        footer span.version-tag {
+            background-color: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            padding: 0.15rem 0.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            margin-left: 0.4rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Nagłówek -->
+        <header class="header">
+            <h1>System Zarządzania Budżetem Domowym</h1>
+            <p>Panel analityczno-predykcyjny finansów osobistych</p>
+        </header>
+
+        <!-- Kafelki KPI Bilansu -->
+        <div class="grid-3">
+            <div class="card">
+                <div class="card-header">Łączne Przychody</div>
+                <div class="kpi-value green">+{{ "%.2f"|format(total_income) }} PLN</div>
+            </div>
+            <div class="card">
+                <div class="card-header">Łączne Wydatki</div>
+                <div class="kpi-value red">-{{ "%.2f"|format(total_expenses) }} PLN</div>
+            </div>
+            <div class="card">
+                <div class="card-header">Saldo Całkowite</div>
+                <div class="kpi-value {% if balance >= 0 %}green{% else %}red{% endif %}">
+                    {{ "%.2f"|format(balance) }} PLN
+                </div>
+            </div>
+        </div>
+
+        <!-- Sekcja Modułu Predykcyjnego -->
+        {% if prediction and prediction.status == 'success' %}
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <span>Moduł Predykcyjny (Uczenie Maszynowe - Regresja Liniowa)</span>
+                <div class="tooltip-container">
+                    <span class="help-icon">?</span>
+                    <div class="tooltip-box">
+                        <strong>Jak czytać ten wykres?</strong><br>
+                        • <strong>Rzeczywiste Wydatki (czerwona linia):</strong> Suma Twoich faktycznych wydatków w poszczególnych miesiącach.<br>
+                        • <strong>Linia Trendu (fioletowa przerywana):</strong> Dopasowany model Regresji Liniowej wyznaczający ogólny kierunek zmian (wzrost/spadek).<br>
+                        • <strong>Prognoza:</strong> Ostatni fioletowy punkt pokazuje szacowaną kwotę wydatków na kolejny miesiąc.<br>
+                        • <strong>MAE:</strong> Średni błąd bezwzględny pokazujący przeciętne odchylenie modelu od historii.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid-3" style="margin-top: 1rem; margin-bottom: 1rem;">
+                <div>
+                    <span style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 600;">PROGNOZA NA NASTĘPNY MIESIĄC</span>
+                    <div class="kpi-value purple">{{ prediction.predicted_value }} PLN</div>
+                    <small style="color: var(--text-secondary);">Model: Regresja Liniowa</small>
+                </div>
+                <div>
+                    <span style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 600;">MODEL PORÓWNAWCZY (ŚREDNIA RUCHOMA)</span>
+                    <div class="kpi-value" style="color: #60a5fa;">{{ prediction.moving_average_value }} PLN</div>
+                    <small style="color: var(--text-secondary);">Średnia z ostatnich miesięcy</small>
+                </div>
+                <div>
+                    <span style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 600;">ŚREDNI BŁĄD PROGNOZY (MAE)</span>
+                    <div class="kpi-value" style="color: #f59e0b;">±{{ prediction.mae_error }} PLN</div>
+                    <small style="color: var(--text-secondary);">Średni błąd bezwzględny na historii</small>
+                </div>
+            </div>
+
+            <!-- Wykres Trendu i Predykcji -->
+            <div class="chart-container" style="height: 300px; margin-top: 1.5rem;">
+                <canvas id="predictionChart"></canvas>
+            </div>
+        </div>
+        {% elif prediction and prediction.status == 'insufficient_data' %}
+        <div class="info-box">
+            💡 <strong>Informacja Modułu Predykcyjnego:</strong> {{ prediction.message }} Dodaj wydatki z co najmniej dwóch różnych miesięcy, aby odblokować prognozowanie wydatków.
+        </div>
+        {% endif %}
+
+        <!-- Sekcja Wykresów Podstawowych -->
+        {% if transactions %}
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-header">
+                    <span>Struktura Wydatków per Kategoria</span>
+                    <div class="tooltip-container">
+                        <span class="help-icon">?</span>
+                        <div class="tooltip-box">
+                            <strong>Wskazówka:</strong> Wykres kołowy przedstawia procentowy oraz kwotowy udział poszczególnych kategorii w łącznej sumie wydatków.
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <span>Bilans: Przychody vs Wydatki</span>
+                    <div class="tooltip-container">
+                        <span class="help-icon">?</span>
+                        <div class="tooltip-box">
+                            <strong>Wskazówka:</strong> Porównanie całkowitej kwoty wprowadzonych przychodów (zielony) do wydatków (czerwony).
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="balanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Formularz Dodawania Transakcji -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">Rejestracja Nowej Transakcji</div>
+            <form action="/add" method="POST">
+                <div class="form-row" style="margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label for="title">Opis / Tytuł transakcji</label>
+                        <input type="text" id="title" name="title" placeholder="np. Zakupy spożywcze" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount">Kwota (PLN)</label>
+                        <input type="number" step="0.01" id="amount" name="amount" placeholder="150.00" required>
+                    </div>
+                </div>
+
+                <div class="form-row" style="margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label for="type">Typ transakcji</label>
+                        <select id="type" name="type" required>
+                            <option value="wydatek">Wydatek</option>
+                            <option value="przychod">Przychód</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="category">Kategoria</label>
+                        <select id="category" name="category" required>
+                            <option value="Jedzenie">Jedzenie</option>
+                            <option value="Rachunki">Rachunki</option>
+                            <option value="Transport">Transport</option>
+                            <option value="Rozrywka">Rozrywka</option>
+                            <option value="Wynagrodzenie">Wynagrodzenie</option>
+                            <option value="Inne">Inne</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="date">Data transakcji</label>
+                        <input type="date" id="date" name="date" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary">Dodaj Transakcję</button>
+            </form>
+        </div>
+
+        <!-- Tabela z historią transakcji -->
+        <div class="card">
+            <div class="card-header">Historia Transakcji ({{ transactions|length }})</div>
+            {% if transactions %}
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Tytuł</th>
+                            <th>Kategoria</th>
+                            <th>Typ</th>
+                            <th>Kwota</th>
+                            <th style="text-align: right;">Akcja</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in transactions %}
+                        <tr>
+                            <td>{{ t.date.strftime('%Y-%m-%d') }}</td>
+                            <td><strong>{{ t.title }}</strong></td>
+                            <td><span style="color: var(--text-secondary);">{{ t.category }}</span></td>
+                            <td>
+                                {% if t.type == 'przychod' %}
+                                    <span class="badge badge-income">Przychód</span>
+                                {% else %}
+                                    <span class="badge badge-expense">Wydatek</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong style="color: {% if t.type == 'przychod' %}var(--accent-green){% else %}var(--text-primary){% endif %};">
+                                    {{ "%.2f"|format(t.amount) }} PLN
+                                </strong>
+                            </td>
+                            <td style="text-align: right;">
+                                <form action="/delete/{{ t.id }}" method="POST" style="display: inline;">
+                                    <button type="submit" class="btn-delete">Usuń</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">Brak zarejestrowanych transakcji w bazie danych.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Stopka -->
+    <footer>
+        System Zarządzania Budżetem Domowym  2026 | Praca Inżynierska <span class="version-tag">v1.6</span>
+    </footer>
+
+    <!-- Wykresy Chart.js -->
+    {% if transactions %}
+    <script>
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.font.family = 'Inter';
+
+        const categoryLabels = {{ category_labels | tojson }};
+        const categoryData = {{ category_data | tojson }};
+        const totalIncome = {{ total_income }};
+        const totalExpenses = {{ total_expenses }};
+
+        // Wykres Kołowy
+        const ctxCategory = document.getElementById('categoryChart');
+        if (ctxCategory) {
+            new Chart(ctxCategory.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: categoryLabels,
+                    datasets: [{
+                        data: categoryData,
+                        backgroundColor: [
+                            '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'
+                        ],
+                        borderColor: '#1e293b',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+        }
+
+        // Wykres Słupkowy
+        const ctxBalance = document.getElementById('balanceChart');
+        if (ctxBalance) {
+            new Chart(ctxBalance.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['Przychody', 'Wydatki'],
+                    datasets: [{
+                        data: [totalIncome, totalExpenses],
+                        backgroundColor: ['#10b981', '#ef4444'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { grid: { color: '#334155' } }
+                    }
+                }
+            });
+        }
+    </script>
+    {% endif %}
+
+    <!-- Wykres Predykcji -->
+    {% if prediction and prediction.status == 'success' %}
+    <script>
+        const predLabels = {{ prediction.labels | tojson }};
+        const historicalValues = {{ prediction.historical_values | tojson }};
+        const regressionTrend = {{ prediction.regression_trend | tojson }};
+
+        const ctxPred = document.getElementById('predictionChart');
+        if (ctxPred) {
+            new Chart(ctxPred.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: predLabels,
+                    datasets: [
+                        {
+                            label: 'Rzeczywiste Wydatki (PLN)',
+                            data: historicalValues,
+                            borderColor: '#ef4444',
+                            backgroundColor: '#ef4444',
+                            borderWidth: 3,
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            fill: false,
+                            tension: 0,
+                            order: 1
+                        },
+                        {
+                            label: 'Linia Trendu i Prognoza (Regresja Liniowa)',
+                            data: regressionTrend,
+                            borderColor: '#8b5cf6',
+                            borderDash: [6, 6],
+                            borderWidth: 2,
+                            pointRadius: 5,
+                            pointBackgroundColor: '#8b5cf6',
+                            fill: false,
+                            tension: 0,
+                            order: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { boxWidth: 20, padding: 15 }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { color: '#334155' } },
+                        y: { 
+                            grid: { color: '#334155' },
+                            ticks: { callback: function(value) { return value + ' PLN'; } }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+    {% endif %}
+</body>
+</html>

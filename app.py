@@ -26,7 +26,7 @@ class Transaction(db.Model):
     date = db.Column(db.Date, nullable=False, default=datetime.utcnow)
 
     def __repr__(self):
-        return f'<Transaction {self.title} - {self.amount} PLN>'
+        return f'<Transaction {self.title} {self.amount} PLN>'
 
 with app.app_context():
     db.create_all()
@@ -116,14 +116,22 @@ def index():
                            category_data=category_data,
                            prediction=prediction_results)
 
-# Dodawanie transakcji
+# Dodawanie transakcji z walidacją kwoty > 0
 @app.route('/add', methods=['POST'])
 def add_transaction():
     title = request.form.get('title')
-    amount = float(request.form.get('amount'))
+    amount_raw = request.form.get('amount')
     category = request.form.get('category')
     trans_type = request.form.get('type')
     date_str = request.form.get('date')
+
+    # Weryfikacja kwoty na poziomie serwera (musi być większa od zera)
+    try:
+        amount = float(amount_raw)
+        if amount <= 0:
+            return redirect(url_for('index'))
+    except (ValueError, TypeError):
+        return redirect(url_for('index'))
 
     trans_date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else datetime.utcnow().date()
 
@@ -149,5 +157,4 @@ def delete_transaction(id):
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(debug=True)

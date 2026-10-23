@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inteligentny Budżet Domowy v1.6</title>
+    <title>Inteligentny Budżet Domowy v1.7</title>
     <!-- Czcionka Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -442,7 +442,8 @@
                     </div>
                     <div class="form-group">
                         <label for="amount">Kwota (PLN)</label>
-                        <input type="number" step="0.01" id="amount" name="amount" placeholder="150.00" required>
+                        <!-- Dodano min="0.01" aby zablokować 0 i wartości ujemne -->
+                        <input type="number" step="0.01" min="0.01" id="amount" name="amount" placeholder="150.00" required>
                     </div>
                 </div>
 
@@ -527,7 +528,7 @@
 
     <!-- Stopka -->
     <footer>
-        System Zarządzania Budżetem Domowym  2026 | Praca Inżynierska <span class="version-tag">v1.6</span>
+        System Zarządzania Budżetem Domowym  2026 | Praca Inżynierska <span class="version-tag">v1.7</span>
     </footer>
 
     <!-- Wykresy Chart.js -->
